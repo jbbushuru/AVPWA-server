@@ -1,4 +1,4 @@
-import Unit from '../models/units.js';
+import Unit from '../models/Units.js';
 import mongoose from 'mongoose';
 import { getGradeFromPoints } from '../utils/getGradeFromPoints.js';
 
