@@ -12,14 +12,33 @@ export const createLesson = async (req, res) => {
       });
     }
 
-    // 1.5. Check for repeating lesson clashes
+    // 1.5. Check for duplicate start time on the same dateKey (direct conflict)
+    if (time) {
+      const sameTimeSameDay = await Lesson.findOne({
+        user: userId,
+        dateKey,
+        time,
+      });
+
+      if (sameTimeSameDay) {
+        return res.status(409).json({
+          message: `A lesson (${sameTimeSameDay.unitName}) already starts at ${time} on this date.`,
+        });
+      }
+    }
+
+    // 2. Check for repeating lesson clashes (by slot AND by start time)
     const incomingDate = new Date(dateKey);
     const incomingDay = incomingDate.getDay();
 
+    // Find repeating lessons that share the same slot OR the same start time
     const existingRepeatingLessons = await Lesson.find({
       user: userId,
-      slot: Number(slot),
-      repeat: { $in: ['weekly', 'bi-weekly'] }
+      repeat: { $in: ['weekly', 'bi-weekly'] },
+      $or: [
+        { slot: Number(slot) },
+        ...(time ? [{ time }] : []),
+      ],
     });
 
     for (const existing of existingRepeatingLessons) {
@@ -27,7 +46,10 @@ export const createLesson = async (req, res) => {
 
       // Check if they fall on the same day of the week
       if (existingDate.getDay() === incomingDay) {
-        
+        const conflictField = existing.slot === Number(slot)
+          ? `slot ${slot}`
+          : `start time ${time}`;
+
         // If incoming is also repeating, they will likely clash infinitely
         if (['weekly', 'bi-weekly'].includes(repeat)) {
           if (repeat === 'bi-weekly' && existing.repeat === 'bi-weekly') {
@@ -35,30 +57,30 @@ export const createLesson = async (req, res) => {
             const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
             if (diffWeeks % 2 === 0) {
               return res.status(409).json({
-                message: `Cannot create repeating lesson: Slot ${slot} is already covered by a bi-weekly lesson (${existing.unitName}).`
+                message: `Cannot create repeating lesson: ${conflictField} is already covered by a bi-weekly lesson (${existing.unitName}).`,
               });
             }
           } else {
             // At least one is weekly, so they definitely clash
             return res.status(409).json({
-              message: `Cannot create repeating lesson: Slot ${slot} is already covered by a repeating lesson (${existing.unitName}).`
+              message: `Cannot create repeating lesson: ${conflictField} is already covered by a repeating lesson (${existing.unitName}).`,
             });
           }
-        } 
-        
+        }
+
         // If incoming is a one-off ('never'), check if the existing repeating lesson covers this exact date
         if (repeat === 'never' || !repeat) {
           if (existingDate <= incomingDate) {
             if (existing.repeat === 'weekly') {
               return res.status(409).json({
-                message: `Slot ${slot} on this date is covered by a weekly lesson (${existing.unitName}).`
+                message: `${conflictField} on this date is covered by a weekly lesson (${existing.unitName}).`,
               });
             } else if (existing.repeat === 'bi-weekly') {
               const diffTime = Math.abs(incomingDate.getTime() - existingDate.getTime());
               const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
               if (diffWeeks % 2 === 0) {
                 return res.status(409).json({
-                  message: `Slot ${slot} on this date is covered by a bi-weekly lesson (${existing.unitName}).`
+                  message: `${conflictField} on this date is covered by a bi-weekly lesson (${existing.unitName}).`,
                 });
               }
             }
@@ -67,7 +89,7 @@ export const createLesson = async (req, res) => {
       }
     }
 
-    // 2. Create and save lesson record
+    // 3. Create and save lesson record
     const lesson = await Lesson.create({
       user: userId,
       dateKey,
@@ -94,6 +116,24 @@ export const createLesson = async (req, res) => {
 
     return res.status(500).json({
       message: 'Failed to create lesson',
+      error: error.message,
+    });
+  }
+};
+
+export const deleteAllLessons = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const result = await Lesson.deleteMany({ user: userId });
+
+    return res.status(200).json({
+      message: 'All lessons deleted successfully',
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: 'Failed to delete lessons',
       error: error.message,
     });
   }

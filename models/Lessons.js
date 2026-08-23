@@ -14,5 +14,6 @@ const lessonSchema = new Schema({
 
 // Compound index to ensure unique lessons per slot per day for a user
 lessonSchema.index({ user: 1, dateKey: 1, slot: 1 }, { unique: true });
+lessonSchema.index({ user: 1, dateKey: 1, time: 1 }, { unique: true, sparse: true });
 
 export default model('Lesson', lessonSchema);
