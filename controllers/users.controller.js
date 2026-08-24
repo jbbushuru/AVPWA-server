@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/Users.js';
@@ -114,11 +116,11 @@ export const refreshToken = async (req, res) => {
   try {
     // 1. Get token from cookies
     const cookies = req.cookies;
-    if (!cookies?.jwt) {
+    if (!cookies?.refreshToken) {
       return res.status(401).json({ message: 'No refresh token provided' });
     }
 
-    const refreshToken = cookies.jwt;
+    const refreshToken = cookies.refreshToken;
 
     // 2. Verify token
     jwt.verify(

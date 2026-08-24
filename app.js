@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+dotenv.config();
 import cors from 'cors';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import cookieParser from 'cookie-parser';
@@ -10,7 +11,6 @@ import unitRoutes from './routes/units.routes.js';
 import lessonRoutes from './routes/lessons.routes.js';
 import timetableRoutes from './routes/timetable.routes.js';
 
-dotenv.config();
 
 const app = express();
 app.set('trust proxy', 1);
