@@ -20,10 +20,11 @@ const generateRefreshToken = (userId) => {
 
 // Helper: Attach Refresh Token to secure HTTP-only Cookie
 const sendRefreshTokenCookie = (res, refreshToken) => {
+  const isProduction = process.env.NODE_ENV === 'production';
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true, // Guards against XSS attacks
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    sameSite: 'strict', // Protects against CSRF
+    secure: isProduction, // HTTPS only in production
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 };
@@ -152,10 +153,11 @@ export const refreshToken = async (req, res) => {
  * @access  Public
  */
 export const logout = async (req, res) => {
+  const isProduction = process.env.NODE_ENV === 'production';
   res.clearCookie('refreshToken', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
   });
   return res.status(200).json({ message: 'Logged out successfully' });
 };
