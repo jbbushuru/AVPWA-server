@@ -10,6 +10,7 @@ import profileRoutes from './routes/profiles.routes.js';
 import unitRoutes from './routes/units.routes.js';
 import lessonRoutes from './routes/lessons.routes.js';
 import timetableRoutes from './routes/timetable.routes.js';
+import taskRoutes from './routes/tasks.routes.js';
 
 
 const app = express();
@@ -46,6 +47,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/units', unitRoutes);
 app.use('/api/lessons', lessonRoutes);
 app.use('/api/timetable', timetableRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // 3. Error Handling Middleware (MUST stay at the bottom)
 app.use(notFound);
